@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require('discord.js');
+const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
 const { getGeminiResponse } = require('../api/gemini');
 const { log } = require('../utils/logger');
 
@@ -23,10 +23,22 @@ module.exports = {
             if (answer.length > 2000) {
                 answer = answer.substring(0, 1997) + '...';
             }
-            await interaction.followUp(answer);
+            
+            const embed = new EmbedBuilder()
+                .setColor(0x0099FF) // Blue color
+                .setDescription(answer)
+                .setTimestamp()
+                .setFooter({ text: 'Powered by Google Gemini' });
+
+            await interaction.followUp({ embeds: [embed] });
         } catch (error) {
             log(`Error in ask command: ${error.message}`, 'error');
-            await interaction.followUp('An error occurred while trying to get a response from Gemini. Please try again later.');
+            const errorEmbed = new EmbedBuilder()
+                .setColor(0xFF0000) // Red color
+                .setTitle('Error')
+                .setDescription('An error occurred while trying to get a response from Gemini. Please try again later.')
+                .setTimestamp();
+            await interaction.followUp({ embeds: [errorEmbed] });
         }
     },
 }; 

@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     data: {
@@ -16,6 +16,14 @@ module.exports = {
                     .setURL(inviteLink),
             );
 
-        await interaction.reply({ content: 'Invite me to your server!', components: [row] });
+        const embed = new EmbedBuilder()
+            .setColor(0x00FF99) // Greenish color
+            .setTitle('Invite the Bot!')
+            .setDescription('Click the button below to invite me to your server.')
+            .setURL(inviteLink) // Set URL on the embed title as well
+            .setTimestamp()
+            .setFooter({ text: 'Thank you for inviting!' });
+
+        await interaction.reply({ embeds: [embed], components: [row] });
     },
 }; 

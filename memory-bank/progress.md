@@ -28,7 +28,13 @@
 - Identified 404 Not Found error for Hugging Face API image generation, likely due to incorrect model ID or model not being found/accessible.
 - Refactored Hugging Face API integration to use `@huggingface/inference` library with `stabilityai/stable-diffusion-xl-base-1.0` model.
 - Fixed issue where bot activity status was not showing by correctly applying `ActivityType` and conditionally including the `url` parameter.
-- **Added `/invite` command with a clickable invite button.**
+- Added `/invite` command with a clickable invite button.
+- `README.md` updated to reflect current project state, features, setup, and deployment.
+- `CODE_OF_CONDUCT.md` and `SECURITY.md` updated with placeholder contact emails for easier maintainability.
+- All bot output now uses `EmbedBuilder` for a more consistent and visually appealing presentation.
+- Hugging Face image generation now uses `stabilityai/stable-diffusion-xl-base-1.0` and `stabilityai/stable-diffusion-xl-refiner-1.0` for higher quality images.
+- Refinement step for Hugging Face image generation temporarily removed due to 'No Inference Provider available' error; the base model is working.
+- **Confirmed that `stabilityai/stable-diffusion-xl-refiner-1.0` is not deployed by any public Hugging Face Inference Provider, explaining the previous error.**
 
 **What's Left to Build:**
 - Deployment of the Node.js bot to Railway (instructions provided, awaiting user execution).

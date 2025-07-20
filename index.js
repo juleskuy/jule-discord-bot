@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, ActivityType, REST, Routes, MessageFlags } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, ActivityType, REST, Routes, MessageFlags, EmbedBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeLogger, log } = require('./utils/logger');
@@ -80,10 +80,16 @@ client.on('interactionCreate', async interaction => {
         await command.execute(interaction);
     } catch (error) {
         log(error, 'error'); // Pass the full error object
+        const errorEmbed = new EmbedBuilder()
+            .setColor(0xFF0000) // Red color
+            .setTitle('Command Error')
+            .setDescription('There was an error while executing this command! Please check the logs for more details.')
+            .setTimestamp();
+
         if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+            await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         } else {
-            await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     }
 });
