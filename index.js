@@ -62,7 +62,7 @@ client.once('ready', async () => {
         activityOptions.url = DISCORD_ACTIVITY_URL;
     }
 
-    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    client.user.setActivity(`${serverCount} souls!`, activityOptions);
     log(`Bot is in ${serverCount} guilds.`, 'info');
 });
 
@@ -103,7 +103,7 @@ client.on('guildCreate', guild => {
     if (DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' && DISCORD_ACTIVITY_URL) {
         activityOptions.url = DISCORD_ACTIVITY_URL;
     }
-    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    client.user.setActivity(`${serverCount} souls!`, activityOptions);
     log(`Joined new guild: ${guild.name}. Total guilds: ${serverCount}`, 'info');
 });
 
@@ -116,7 +116,7 @@ client.on('guildDelete', guild => {
     if (DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' && DISCORD_ACTIVITY_URL) {
         activityOptions.url = DISCORD_ACTIVITY_URL;
     }
-    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    client.user.setActivity(`${serverCount} souls!`, activityOptions);
     log(`Left guild: ${guild.name}. Total guilds: ${serverCount}`, 'info');
 });
 
