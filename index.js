@@ -1,47 +1,19 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, ActivityType, REST, Routes, AttachmentBuilder } = require('discord.js');
-const axios = require('axios');
+const { Client, GatewayIntentBits, Partials, ActivityType, REST, Routes, MessageFlags } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { initializeLogger, log } = require('./utils/logger');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = process.env.GEMINI_API_URL;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
-const CLIENT_ID = process.env.CLIENT_ID; // Assuming CLIENT_ID is also in .env
+const CLIENT_ID = process.env.CLIENT_ID;
+const DISCORD_ACTIVITY_TYPE = process.env.DISCORD_ACTIVITY_TYPE || 'Playing'; // Default to 'Playing'
+const DISCORD_ACTIVITY_URL = process.env.DISCORD_ACTIVITY_URL || null;
+const DISCORD_LOG_CHANNEL_ID = process.env.DISCORD_LOG_CHANNEL_ID;
+const DISCORD_LOG_TOKEN = process.env.DISCORD_LOG_TOKEN;
 
-const commands = [
-    {
-        name: 'ask',
-        description: 'Ask a question to the Gemini API',
-        options: [
-            {
-                name: 'question',
-                type: 3, // String type
-                description: 'The question to ask',
-                required: true,
-            },
-        ],
-    },
-    {
-        name: 'generate_image',
-        description: 'Generate an image based on a prompt',
-        options: [
-            {
-                name: 'prompt',
-                type: 3, // String type
-                description: 'The prompt for image generation',
-                required: true,
-            },
-        ],
-    },
-    {
-        name: 'help',
-        description: 'Display information about available commands',
-    },
-];
+// Initialize the logger immediately with the retrieved environment variables
+initializeLogger(DISCORD_LOG_CHANNEL_ID, DISCORD_LOG_TOKEN);
 
-const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
-
-// Initialize the bot with necessary intents and partials
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -51,151 +23,95 @@ const client = new Client({
     partials: [Partials.Channel, Partials.Message]
 });
 
-// Function to generate an image using Hugging Face API
-async function generateImage(prompt) {
-    try {
-        const response = await axios.post(
-            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1",
-            { inputs: prompt },
-            {
-                headers: {
-                    'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                responseType: 'arraybuffer' // Important for handling image data
-            }
-        );
+client.commands = new Map();
 
-        const contentType = response.headers['content-type'];
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-        if (contentType && contentType.startsWith('image')) {
-            return response.data; // Return raw image buffer
-        } else if (contentType === 'application/json') {
-            const responseJson = JSON.parse(Buffer.from(response.data).toString());
-            if (responseJson.generated_image) {
-                return responseJson.generated_image;
-            } else {
-                return 'No image generated.';
-            }
-        } else {
-            return `Unexpected response format: ${Buffer.from(response.data).toString()}`;
-        }
-    } catch (error) {
-        if (error.response) {
-            return `Error from Hugging Face API: ${error.response.status} - ${Buffer.from(error.response.data).toString()}`;
-        } else {
-            return `An error occurred: ${error.message}`;
-        }
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+    } else {
+        log(`The command at ${filePath} is missing a required "data" or "execute" property.`, 'warn');
     }
 }
 
-// Function to get response from Gemini API
-async function getGeminiResponse(question) {
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-    const data = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": question
-                    }
-                ]
-            }
-        ]
-    };
-    try {
-        const response = await axios.post(GEMINI_API_URL, data, { headers });
-        if (response.status === 200) {
-            const candidates = response.data.candidates || [];
-            if (candidates.length > 0) {
-                const content = candidates[0].content || {};
-                const parts = content.parts || [];
-                if (parts.length > 0) {
-                    return parts[0].text || 'No response from Gemini API.';
-                }
-            }
-            return 'No valid response from Gemini API.';
-        } else {
-            return `Error communicating with Gemini API: ${response.status}`;
-        }
-    } catch (error) {
-        return `An error occurred: ${error.message}`;
-    }
-}
+const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
 
-// Event: Bot has connected to Discord
 client.once('ready', async () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-    // Register slash commands globally
+    log(`Logged in as ${client.user.tag}!`, 'info');
     try {
+        const commandsToRegister = Array.from(client.commands.values()).map(command => command.data);
         await rest.put(
             Routes.applicationCommands(CLIENT_ID),
-            { body: commands },
+            { body: commandsToRegister },
         );
-        console.log('Successfully reloaded application (/) commands.');
+        log('Successfully reloaded application (/) commands.', 'info');
     } catch (error) {
-        console.error('Failed to reload application (/) commands:', error);
+        log(`Failed to reload application (/) commands: ${error.message}`, 'error');
     }
 
-    // Set initial server count in the activity status
     const serverCount = client.guilds.cache.size;
-    client.user.setActivity(`${serverCount} servers!`, { type: ActivityType.Streaming, url: "https://www.twitch.tv/valorant" });
+    const activityOptions = {
+        type: ActivityType[DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' ? 'Streaming' : DISCORD_ACTIVITY_TYPE],
+    };
 
-    console.log(`Bot is in ${serverCount} guilds.`);
+    if (DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' && DISCORD_ACTIVITY_URL) {
+        activityOptions.url = DISCORD_ACTIVITY_URL;
+    }
+
+    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    log(`Bot is in ${serverCount} guilds.`, 'info');
 });
 
-// Event: Handle interactions (slash commands)
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
-    const { commandName, options } = interaction;
+    const command = interaction.client.commands.get(interaction.commandName);
 
-    if (commandName === 'ask') {
-        await interaction.deferReply();
-        const question = options.getString('question');
-        let answer = await getGeminiResponse(question);
-        if (answer.length > 2000) {
-            answer = answer.substring(0, 1997) + '...';
-        }
-        await interaction.followUp(answer);
-    } else if (commandName === 'generate_image') {
-        await interaction.deferReply();
-        const prompt = options.getString('prompt');
-        const imageData = await generateImage(prompt);
+    if (!command) {
+        log(`No command matching ${interaction.commandName} was found.`, 'warn');
+        return;
+    }
 
-        if (Buffer.isBuffer(imageData)) {
-            const attachment = new AttachmentBuilder(imageData, { name: 'generated_image.png' });
-            await interaction.followUp({ files: [attachment] });
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        log(error, 'error'); // Pass the full error object
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
         } else {
-            await interaction.followUp(imageData);
+            await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
         }
-    } else if (commandName === 'help') {
-        const helpText = (
-            "> \n"
-            + "> **Basic Commands:**\n"
-            + "> - `/ask <question>` Ask a question to the Gemini API and get an answer.\n"
-            + "> - `/generate_image <prompt>` Generate an image based on a given prompt.\n"
-            + "> \u200e \n"
-        );
-        await interaction.reply({ content: helpText, ephemeral: true });
     }
 });
 
-// Event: Update server count when bot joins a new server
 client.on('guildCreate', guild => {
     const serverCount = client.guilds.cache.size;
-    client.user.setActivity(`${serverCount} servers!`, { type: ActivityType.Streaming, url: "https://www.twitch.tv/valorant" });
-    console.log(`Joined new guild: ${guild.name}. Total guilds: ${serverCount}`);
+    const activityOptions = {
+        type: ActivityType[DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' ? 'Streaming' : DISCORD_ACTIVITY_TYPE],
+    };
+
+    if (DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' && DISCORD_ACTIVITY_URL) {
+        activityOptions.url = DISCORD_ACTIVITY_URL;
+    }
+    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    log(`Joined new guild: ${guild.name}. Total guilds: ${serverCount}`, 'info');
 });
 
-// Event: Update server count when bot leaves a server
 client.on('guildDelete', guild => {
     const serverCount = client.guilds.cache.size;
-    client.user.setActivity(`${serverCount} servers!`, { type: ActivityType.Streaming, url: "https://www.twitch.tv/valorant" });
-    console.log(`Left guild: ${guild.name}. Total guilds: ${serverCount}`);
+    const activityOptions = {
+        type: ActivityType[DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' ? 'Streaming' : DISCORD_ACTIVITY_TYPE],
+    };
+
+    if (DISCORD_ACTIVITY_TYPE.toUpperCase() === 'STREAMING' && DISCORD_ACTIVITY_URL) {
+        activityOptions.url = DISCORD_ACTIVITY_URL;
+    }
+    client.user.setActivity(`${serverCount} servers!`, activityOptions);
+    log(`Left guild: ${guild.name}. Total guilds: ${serverCount}`, 'info');
 });
 
-// Log in to Discord with your client's token
-client.login(DISCORD_BOT_TOKEN); 
+client.login(DISCORD_BOT_TOKEN);

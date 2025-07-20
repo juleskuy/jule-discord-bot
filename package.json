@@ -1,7 +1,7 @@
 {
   "name": "discord-bot-nodejs",
   "version": "1.0.0",
-  "description": "A Discord bot converted from Python to Node.js, using Gemini and Hugging Face APIs.",
+  "description": "A Discord bot built with Node.js, using Gemini and Hugging Face APIs.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@huggingface/inference": "^4.5.3",
     "axios": "^1.x.x",
     "discord.js": "^14.x.x",
     "dotenv": "^16.x.x"
   }
-} 
+}
