@@ -34,7 +34,8 @@
 - All bot output now uses `EmbedBuilder` for a more consistent and visually appealing presentation.
 - Hugging Face image generation now uses `stabilityai/stable-diffusion-xl-base-1.0` and `stabilityai/stable-diffusion-xl-refiner-1.0` for higher quality images.
 - Refinement step for Hugging Face image generation temporarily removed due to 'No Inference Provider available' error; the base model is working.
-- **Confirmed that `stabilityai/stable-diffusion-xl-refiner-1.0` is not deployed by any public Hugging Face Inference Provider, explaining the previous error.**
+- Confirmed that `stabilityai/stable-diffusion-xl-refiner-1.0` is not deployed by any public Hugging Face Inference Provider, explaining the previous error.
+- **Created `TERMS_OF_SERVICE.md` and `PRIVACY_POLICY.md` with template content, and linked them in `README.md`.**
 
 **What's Left to Build:**
 - Deployment of the Node.js bot to Railway (instructions provided, awaiting user execution).
@@ -42,6 +43,7 @@
 - User to verify `GEMINI_API_KEY` and associated API permissions.
 - User to verify `HUGGINGFACE_API_KEY`.
 - User to verify Hugging Face model ID and accessibility.
+- **User to replace placeholder content in `TERMS_OF_SERVICE.md` and `PRIVACY_POLICY.md` and consult legal counsel.**
 
 **Current Status:**
 The Node.js conversion is complete, improvements have been made, and the project is ready for deployment. We are now in the process of guiding the user through the deployment steps on Railway, and awaiting confirmation of deployment.

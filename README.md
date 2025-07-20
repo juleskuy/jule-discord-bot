@@ -77,3 +77,11 @@ See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 ## Security Policy
 
 See [SECURITY.md](SECURITY.md).
+
+## Terms of Service
+
+See [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md).
+
+## Privacy Policy
+
+See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
